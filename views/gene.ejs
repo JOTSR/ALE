@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="icon-512.png" type="image/png" media="prefer-color-sheme: light">
+    <link rel="shortcut icon" href="icon-512-dark.png" type="image/png" media="prefer-color-sheme: dark">
+    <script src="scripts/app.js" defer></script>
+    <link rel="stylesheet" href="style/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.0.0-rc.1/plotly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+    <title>ALE: ABC Licence &Eacute;talonnage</title>
+</head>
+
+<body>
+    <div class="tabs-list">
+        <button onclick="window.location = '/'">Carte ABC</button>
+        <button class="active">Générateur d'impulsions</button>
+    </div>
+    <h1>ALE</h1>
+    <h2>Étalonnage en charge du générteur d'impulsions</h2>
+    <div class="content-block">
+        <h3>Data</h3>
+        <!--Progress bar-->
+        <input id="folder-path" placeholder="Dossier de données" type="text">
+        <button id="load-button" value="gene">Load data</button>
+        <button id="export-data" value="gene">Export data</button>
+        <button id="trace-graph">Trace Graph</button>
+    </div>
+    <div class="content-block">
+        <h3>Graph</h3>
+        <div id="gene-graph"></div>
+        <script>
+            function Graph(...config) {
+                Plotly.newPlot(...config)
+            }
+        </script>
+    </div>
+    <div class="content-block">
+        <h3>Stats</h3>
+        <div class="code" id="gene-stats"></div>
+    </div>
+</body>
+
+</html>

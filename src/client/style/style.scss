@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,500;1,300;1,500&display=swap');
+:root {
+    --dark-bg-color: rgb(165, 165, 165);
+    --main-bg-color: rgb(245, 245, 245);
+    --main-bg-gradient: linear-gradient(330deg, rgb(225, 225, 225) 0%, rgb(245, 245, 245) 100%);
+    --main-font-color: hsl(0, 0%, 6%);
+    --main-font-family: 'Rubik', sans-serif;
+    --main-font-size: 16px;
+    --accent-font-family: 'Comfortaa', cursive;
+    --accent-color: rgb(33, 85, 230);
+    --dark-accent-color: rgb(16, 51, 147);
+    --light-accent-color: rgb(81, 122, 236);
+}
+
+@media screen and (prefers-color-scheme: dark) {
+	:root {
+        --dark-bg-color: rgb(15, 15, 15);
+		--main-bg-color: rgb(30, 30, 30);
+		--main-bg-gradient: linear-gradient(
+			135deg,
+			rgb(25, 25, 25) 0%,
+			rgb(45, 45, 45) 100%
+		);
+		--main-font-color: hsl(0, 0%, 94%);
+	}
+    
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--main-bg-gradient);
+    background-color: var(--main-bg-color);
+    font-family: var(--main-font-family);
+    font-size: var(--main-font-size);
+    font-weight: 300;
+    color: var(--main-font-color);
+    min-height: 100vh;
+}
+
+h1 {
+    width: 100%;
+    padding: 5px;
+    text-align: center;
+    font-size: 4em;
+}
+
+h2 {
+    margin: 5px;
+    padding: 5px;
+}
+
+.content-block {
+    margin: 25px 5px;
+    padding: 5px;
+    border-radius: 5px;
+    border: 3px solid var(--dark-bg-color);
+    
+    h3 {
+        padding: 5px;
+        margin-bottom: -30px;
+        transform: translateY(-40px);
+        background-color: var(--dark-bg-color);
+        border-radius: 5px;
+        width: fit-content;
+    }
+}
+
+
+button {
+    user-select: none;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    padding: 5px 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 3px solid var(--light-accent-color);
+    background-color: var(--accent-color);
+    transition: all 0.15s ease;
+    
+    &:active {
+        border: 3px solid var(--light-accent-color);
+        background-color: var(--light-accent-color);
+    }
+}
+
+
+input[type=text],
+select {
+    color: var(--dark-bg-color);
+    font-weight: bold;
+    width: 100%;
+    margin: 5px 0;
+    padding: 5px 8px;
+    border-radius: 5px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+input[type=text]:focus,
+select:active {
+    outline: none;
+    color: var(--main-font-color);
+    border: 3px solid rgba(0, 0, 0, 0.3);
+    background-color: var(--main-bg-color);
+}
+
+input[type=range] {
+    width: 100%;
+}
+
+.tabs-list {
+    margin: 25px 5px;
+    border-radius: 5px;
+    background-color: var(--main-bg-color);
+    border: 3px solid var(--dark-bg-color);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    button {
+        outline: none;
+        margin: 0;
+        background-color: transparent;
+        border-color: transparent;
+
+        &:active,
+        &.active {
+            border: 3px solid var(--accent-color);
+            background-color: var(--accent-color);
+        }
+
+        &:focus {
+            border: 3px solid var(--light-accent-color);
+        }
+    }
+}
+
+.code {
+    background-color: var(--dark-bg-color);
+    border-radius: 5px;
+    padding: 5px;
+    font-family: courier, monospace;
+    overflow-wrap: break-word;
+    width: fit-content;
+}

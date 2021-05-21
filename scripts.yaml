@@ -1,0 +1,38 @@
+scripts:
+    dev:
+        desc: Run in dev mode DENO_ENV=dev
+        env:
+            DENO_ENV: dev
+        pll:
+            - deno run -A --unstable main.ts
+            - sass src/client/style/style.scss:public/style/style.css -c
+            - esbuild src/client/scripts/app.ts --outdir=public/scripts --sourcemap --target=chrome89 --bundle
+    watch:
+        desc: Run in dev mode DENO_ENV=dev and relaunch on change
+        env:
+            DENO_ENV: dev
+        pll:
+            - deno run -A --unstable --watch --no-check main.ts
+            - sass src/client/style/style.scss:public/style/style.css --watch -c
+            - esbuild src/client/scripts/app.ts --outdir=public/scripts --sourcemap --target=chrome89 --bundle --watch
+    test:
+        desc: Run test DENO_ENV=test
+        env:
+            DENO_ENV: test
+        pll:
+            - echo "Not implemented"
+    build:
+        desc: Test then bundle then build DENO_ENV=prod
+        env:
+            DENO_ENV: prod
+        pll:
+            - vr run test
+            - sass src/client/style/style.scss:public/style/style.css -c --no-source-map --style=compressed
+            - esbuild src/client/scripts/app.ts --outdir=public/scripts --bundle --minify --target=chrome80,firefox80,safari12,edge85
+    prod:
+        desc: Build then serve
+        env:
+            DENO_ENV: prod
+        pll:
+            - vr run build
+            - deno run -A --unstable main.ts

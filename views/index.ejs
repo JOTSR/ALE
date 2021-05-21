@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="icon-512.png" type="image/png" media="prefer-color-sheme: light">
+    <link rel="shortcut icon" href="icon-512-dark.png" type="image/png" media="prefer-color-sheme: dark">
+    <script src="scripts/app.js" defer></script>
+    <link rel="stylesheet" href="style/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.0.0-rc.1/plotly.min.js"></script>
+    <title>ALE: ABC Licence &Eacute;talonnage</title>
+</head>
+
+<body>
+    <div class="tabs-list">
+        <button class="active">Carte ABC</button>
+        <button onclick="window.location = '/gene'">Générateur d'impulsions</button>
+    </div>
+    <h1>ALE</h1>
+    <h2>Étalonnage de la carte ABC</h2>
+    <!-- data, 'HG', 'ping', 'amplitude', 'charge', [1] -->
+    <div class="content-block">
+        <h3>Data</h3>
+        <!--Progress bar-->
+        <input id="folder-path" placeholder="Dossier de données" type="text">
+        <input id="forced-focus" placeholder="Channel forcés : 1, 2, 3, ..." type="text">
+        <button id="load-button" value="abc">Load data</button>
+        <button id="export-data" value="abc">Export data</button>
+    </div>
+    <div class="tabs-list" id="abc-tabs">
+        <button value="trace-charge-div">Trace charge</button>
+        <button value="stats-charge-div">Stats charge</button>
+        <button>Stats time</button>
+        <button>Trace time</button>
+    </div>
+    <div class="content-block">
+        <h3>Config</h3>
+        <label for="gainMode">Mode du gain</label>
+        <select id="gainMode">
+            <option>---</option>
+            <option value="HG">HG</option>
+            <option value="LG">LG</option>
+            </select>
+        <label for="responseMode">Mode de reponse</label>
+        <select id="responseMode">
+            <option>---</option>
+            <option value="ping">ping</option>
+            <option value="pong">pong</option>
+            <option value="both">both</option>
+        </select>
+        <label for="xLabel">Axe x</label>
+        <select id="xLabel">
+            <option>---</option>
+            <option value="amplitude">amplitude</option>
+            <option value="charge">charge</option>
+            <option value="rms">rms</option>
+        </select>
+        <label for="yLabel">Axe y</label>
+        <select id="yLabel">
+            <option>---</option>
+            <option value="amplitude">amplitude</option>
+            <option value="charge">charge</option>
+            <option value="rms">rms</option>
+        </select>
+        <input type="text" id="channelList" placeholder="1, 2, 3, 4,...">
+        <button id="trace">Trace</button>
+    </div>
+    <div id="trace-charge-div" style="display: none;">
+        <%- include('templates/trace-charge-div.ejs') %> 
+    </div>
+    <div id="stats-charge-div" style="display: none;">
+        <%- include('templates/stats-charge-div.ejs') %> 
+    </div>
+    
+</body>
+
+</html>
