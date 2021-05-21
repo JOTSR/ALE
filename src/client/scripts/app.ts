@@ -58,7 +58,6 @@ const jsonAutoDownload = (data: unknown, fileName: string) => {
 	const uri = encodeURI(json)
 	const link = document.createElement('a')
 	link.setAttribute('href', uri)
-	console.log(uri)
 	link.setAttribute('download', fileName)
 	document.body.appendChild(link)
 	link.click()

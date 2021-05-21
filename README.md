@@ -21,19 +21,22 @@ To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
-Install at least [deno v1.10](https://deno.land/)
+- Install on your machine
+  Install at least [deno v1.10](https://deno.land/)
 
--   check for updates
-    ```sh
-    deno upgrade
-    ```
-For local use get:
--   [sass](https://sass-lang.com/)
--   [esbuild](https://esbuild.github.io/)
--   [Velociraptor](https://deno.land/x/velociraptor@1.0.0-beta.18)
-    ```sh
-    deno install -qA -n vr https://deno.land/x/velociraptor@1.0.0-beta.18/cli.ts
-    ```
+  -   check for updates
+      ```sh
+      deno upgrade
+      ```
+  For local use get:
+  -   [sass](https://sass-lang.com/)
+  -   [esbuild](https://esbuild.github.io/)
+  -   [Velociraptor](https://deno.land/x/velociraptor@1.0.0-beta.18)
+      ```sh
+      deno install -qA -n vr https://deno.land/x/velociraptor@1.0.0-beta.18/cli.ts
+      ```
+- Or use [docker](https://docs.docker.com/get-docker/)
+  Need [docker-compose](https://docs.docker.com/compose/install/)
 
 ### Installation
 
@@ -42,15 +45,25 @@ For local use get:
    deno run https://github.com/JOTSR/ALE/main.ts
    ```
     Or -->
-
-1. Clone the repo
-    ```sh
-    git clone https://github.com/JOTSR/ALE.git
+- On your machine
+  1. Clone the repo
+      ```sh
+      git clone https://github.com/JOTSR/ALE.git
+      ```
+  2. ```sh
+    vr run dev
     ```
-1. ```sh
-   vr run dev
-   ```
+- With docker
+  In project folder
+  1. Build image
+      ```sh
+      docker build . -t ale_app
+      ```
 
+  2. Run image
+      ```sh
+      docker-compose up
+      ```
 <!-- CONTRIBUTING -->
 
 ## Contributing
