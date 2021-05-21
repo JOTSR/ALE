@@ -45,25 +45,38 @@ To get a local copy up and running follow these simple example steps.
    deno run https://github.com/JOTSR/ALE/main.ts
    ```
     Or -->
-- On your machine
-  1. Clone the repo
-      ```sh
-      git clone https://github.com/JOTSR/ALE.git
-      ```
-  2. ```sh
+#### On your machine
+1. Clone the repo
+    ```sh
+    git clone https://github.com/JOTSR/ALE.git
+    ```
+2. Run the server
+    ```sh
     vr run dev
     ```
-- With docker
-  In project folder
-  1. Build image
-      ```sh
-      docker build . -t ale_app
-      ```
+#### With docker
+In project folder
+1. Build image
+    ```sh
+    docker build . -t ale_app
+    ```
 
-  2. Run image
-      ```sh
-      docker-compose up
-      ```
+2. Run image (defalt run in watch mode)
+    ```sh
+    docker-compose up
+    ```
+Default serve GUI on http://localhost:8080
+
+_Note: if running with docker put raw data folder in app root directory_
+
+#### Command
+ ```sh
+ vr run [ARG]
+ ```
+ - dev: Run in development mode
+ - watch: Run "dev" and restart on change
+ - test: Test, __not implemented__
+ - prod: Test and run in production mode, __not implemented__
 <!-- CONTRIBUTING -->
 
 ## Contributing

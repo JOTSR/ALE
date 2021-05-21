@@ -57,7 +57,7 @@ const hitRegisterHandle = (byteArray: Uint8Array) => {
  * @param format chunk type
  * @returns parsed chunk
  */
-const singleParse = (
+const parseChunk = (
 	byteArray: Uint8Array,
 	format: 'header' | 'channel'
 ): (Header | channelData) => {
@@ -85,11 +85,11 @@ const singleParse = (
 }
 
 /**
- * Parse raw data for further processing 
+ * Parse raw data in a bin file for further processing 
  * @param path bin file path
  * @returns parsed bin data
  */
-const parseRaw = async (path: string, ...forceFocus: channelID[]): Promise<RawData[]> => {
+const parseBin = async (path: string, ...forceFocus: channelID[]): Promise<RawData[]> => {
 	const data = []
 	const file = await Deno.open(path)
 	const chunkSize = 27 + 128 * 9 //header chunk size + 128 * channel chunk size
@@ -122,9 +122,9 @@ const parseRaw = async (path: string, ...forceFocus: channelID[]): Promise<RawDa
             amplitude: amplitude,
             gain: gain,
 			channelEvent: {
-				header: singleParse(eventHeader, 'header'),
+				header: parseChunk(eventHeader, 'header'),
 				data: channels.map((channel) =>
-					singleParse(channel, 'channel')
+					parseChunk(channel, 'channel')
 				),
 			}
 		})
@@ -144,7 +144,7 @@ const parseSingle = async (directory: Path, ...forceFocus: channelID[]) => {
     //Iterate on all bin in the directory and parse it
 	for await (const dirEntry of Deno.readDir(directory)) {
 		if (dirEntry.isFile && dirEntry.name.endsWith('.bin')) {
-			raws.push(await parseRaw(`${directory}/${dirEntry.name}`, ...forceFocus))
+			raws.push(await parseBin(`${directory}/${dirEntry.name}`, ...forceFocus))
 		}
 	}
 	return raws.flat()
@@ -167,5 +167,9 @@ const parseAll = async (directory: Path, ...forceFocus: channelID[]) => {
 	return raws.flat()
 }
 
-export { parseRaw, parseSingle, parseAll }
+const path = 'C:/Users/xdrzj/OneDrive/Documents/Scolaire/L3 PC/Stage/CENBG/rawData/Charge_Gene/Time_Resolution/TOBI_CAT0_Ch0_2021-05-05_15-56-32_ABDEL/2021-05-18_15-20-06_ABDEL_CAT0_Ch0_G32_Amp100mV-GENE.bin'
+const a = await parseBin(path, 80)
+console.log(a)
+
+export { parseBin, parseSingle, parseAll }
 export type { RawData, channelID }

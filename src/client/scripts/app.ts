@@ -55,13 +55,15 @@ menuButtons.forEach((button) => {
 
 const jsonAutoDownload = (data: unknown, fileName: string) => {
 	const json = JSON.stringify(data)
-	const uri = encodeURI(json)
-	const link = document.createElement('a')
-	link.setAttribute('href', uri)
-	link.setAttribute('download', fileName)
-	document.body.appendChild(link)
-	link.click()
-	document.body.removeChild(link)
+	console.log(json)
+	alert('Data printed in console')
+	// const uri = encodeURI(json)
+	// const link = document.createElement('a')
+	// link.setAttribute('href', uri)
+	// link.setAttribute('download', fileName)
+	// document.body.appendChild(link)
+	// link.click()
+	// document.body.removeChild(link)
 }
 
 /**
