@@ -1,0 +1,114 @@
+import ProgressBar from 'https://deno.land/x/progress@v1.0.0/mod.ts'
+import { existsSync } from 'https://deno.land/std@0.97.0/fs/mod.ts'
+import * as ABC from './abcAdapter.ts'
+import * as BIN from './abcBinReader.ts'
+
+/**
+ * CLI adapter for parsing and analyze datas
+ */
+
+type Path = string
+
+/**
+ * Parse binary files onto RawData[] for further analysis
+ * @param {Path} sourcePath (directory of | subdirectory that contains) binary files of ABC card
+ * @param {Path} outDir Output directory to store RawData[] .json files of parsed bins
+ * @param {string} prefix Prefix for .json out files, default "raw_data"
+ * @param {number[]} forcedChannels Forced channels to focus on and keep after ceaning unwanted event, default []
+ */
+const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', forcedChannels: number[] = []) => {
+  //Test source path before parsing
+  const absSourcePath = existsSync(sourcePath) ? sourcePath : `${Deno.cwd()}/${sourcePath}`
+  if (!existsSync(absSourcePath)) throw new Error(`No such file at ${absSourcePath}`)
+
+  //Make out dir if necessary
+  await Deno.mkdir(outDir, {recursive: true})
+
+  const { isFile, isDirectory, size } = await Deno.stat(absSourcePath)
+  if (isFile) {
+    //Progressbar for UI
+    const progress = new ProgressBar({total: size, clear: true})
+    let comp = 0
+    const cb = (_e: Event) => progress.render(comp++)
+    
+    //Parse single bin file
+    const rawData = await BIN.parseBin(absSourcePath, forcedChannels, cb as unknown as EventListenerObject)
+    const jsonFile = JSON.stringify(rawData)
+    await Deno.writeTextFile(`${outDir}/${prefix}_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
+
+    return
+  }
+  if (isDirectory) {
+    //Progressbar for UI
+    let count = 0
+    for await (const subDir of Deno.readDir(absSourcePath)) {
+      if (subDir.isDirectory) for await (const entry of Deno.readDir(subDir.name)) if (entry.isFile && entry.name.endsWith('.bin')) count++
+      else if (subDir.isFile && subDir.name.endsWith('.bin')) count++
+    }
+
+    const progress = new ProgressBar({total: count, clear: true})
+    let comp = 0
+  
+    for await (const subDir of Deno.readDir(absSourcePath)) {
+        if (subDir.isDirectory) {
+            //Parse single measure serie
+            const rawDatas = await BIN.parseSingle(absSourcePath, forcedChannels)
+            if (rawDatas.length !== 0) {
+              const jsonFile = JSON.stringify(rawDatas)
+              await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
+              progress.render(comp++)
+            }
+        } else if (subDir.isFile) {
+          //Parse single bin file
+          const rawData = await BIN.parseBin(absSourcePath, forcedChannels)
+          const jsonFile = JSON.stringify(rawData)
+          await Deno.writeTextFile(`${outDir}/${prefix}_single_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
+          progress.render(comp++)
+        }
+    }
+    return
+  } 
+}
+
+/**
+ * Parse RawData[] onto Data[] (clean unwanted event, calcul finetime, group same channel event, group HG & LG)
+ * @param {Path} sourcePath (file | directory) of RawData[] *.json files
+ * @param {Path} outFile Data[] json file
+ */
+const parse = async (sourcePath: Path, outFile: Path) => {
+  //Test source path before parsing
+  const absSourcePath = existsSync(sourcePath) ? sourcePath : `${Deno.cwd()}/${sourcePath}`
+  if (!existsSync(absSourcePath)) throw new Error(`No such file at ${absSourcePath}`)
+
+  //Test out path before parsing, throw error if cannot create out file
+  await Deno.create(outFile)
+  
+  //Progressbar for UI
+  const progress = new ProgressBar({total: 128, clear: true})
+  let comp = 0
+  
+  const datas: ABC.Data[] = []
+  
+  const { isFile, isDirectory } = await Deno.stat(absSourcePath)
+
+  //Parse raw datas
+  if (isFile) {
+    const file = await Deno.readTextFile(sourcePath)
+    datas.push(...ABC.parse(...JSON.parse(file)))
+  }
+  else if (isDirectory) {
+    //Parse all json in souce directory
+    for await (const dirEntry of Deno.readDir(absSourcePath)) {
+      if (dirEntry.isFile && dirEntry.name.endsWith('.json')) {
+        const file = await Deno.readTextFile(`${absSourcePath}/${dirEntry.name}`)
+        datas.push(...ABC.parse(...JSON.parse(file)))
+        progress.render(comp++)
+      }
+    }
+  } 
+
+  await Deno.writeTextFile(outFile, JSON.stringify(datas))
+  
+}
+
+export { parse, parseBin }

@@ -52,7 +52,7 @@ To get a local copy up and running follow these simple example steps.
     ```
 2. Run the server
     ```sh
-    vr run dev
+    vr run [ARG]
     ```
 #### With docker
 In project folder
@@ -73,10 +73,10 @@ _Note: if running with docker put raw data folder in app root directory_
  ```sh
  vr run [ARG]
  ```
- - dev: Run in development mode
- - watch: Run "dev" and restart on change
- - test: Test, __not implemented__
- - prod: Test and run in production mode, __not implemented__
+ - "dev": Run in development mode
+ - "watch": Run "dev" and restart on change
+ - "test": Test, __not implemented__
+ - "prod": Test and run in production mode, __not implemented__
 <!-- CONTRIBUTING -->
 
 ## Contributing

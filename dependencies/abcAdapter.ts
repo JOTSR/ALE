@@ -1,92 +1,69 @@
 import { RawData } from './abcBinReader.ts'
+import { extremum } from './statsFunc.ts'
 
 interface Data {
 	channel: number
-	highGain: Value[]
-	lowGain: Value[]
+	highGain: BaseValue[]
+	lowGain: BaseValue[]
 }
-
-interface Value {
-	ping: BaseValue
-	pong: BaseValue
-}
-
 interface BaseValue {
-	time: number
-	amplitude: number
-	charge: number
-	rms: number
-}
-
-interface singleData {
-	channel: number
-	gainMode: 'HG' | 'LG'
-	responseMode: 'ping' | 'pong'
-	values: BaseValue[]
+	date: number //timestamp of ABC card
+	timestamp: number //timestamp of the event
+	gain: number //ASIC gain
+	amplitude: number //Inpult voltage in mV
+	charge: number //Measure value in ADCu
 }
 
 /**
  * Parse rawData list extracted with abcBinreader to simplest format for processing and analysing
- * @param rawDatas rawData list of valules from abcBinReader
- * @returns Parsed and cleaned data ready for analysis
+ * @param {RawData[]} rawDatas rawData list of valules from abcBinReader
+ * @returns {Data[]} Parsed and cleaned data ready for analysis
  */
-const parse = (...rawDatas: RawData[]) => {
-	const messyDatas = []
+const parse = (...rawDatas: RawData[]): Data[] => {
+	
+	const channels = []
+	const globalFocus: number[] = []
+	//We catch focused channels and get useful keys
 	for (const rawData of rawDatas) {
-		//Iterate on focused channel and parse raw format
-		for (const channelID of rawData.focus) {
-			const currentChannel = rawData.channelEvent.data[channelID]
-			
-			const baseValue = {
-				time: currentChannel.timestamp,
-				amplitude: rawData.amplitude,
-				charge: currentChannel.charge,
-				rms: 0
-				//rms: [currentChannel.charge] //Array for further rms calcul
-			}
-
-			const value = {
-				ping: rawData.channelEvent.header.hitType == 'ping' ? baseValue : null,
-				pong: rawData.channelEvent.header.hitType == 'pong' ? baseValue : null
-			}
-
-			const data = {
-				channel: channelID,
-				highGain: currentChannel.channel < 129 ? value : null,
-				lowGain: currentChannel.channel > 128 ? value : null,
-			}
-
-			messyDatas.push(data)
-		}
+		const { amplitude, gain, focus } = rawData
+		globalFocus.push(...focus)
+		const unfilterChannels = rawData.channelEvent.data.map(channelData => ({...channelData, ...rawData.channelEvent.header, amplitude, gain}))
+		channels.push(...unfilterChannels.filter(channelData => focus.includes(channelData.channel) || focus.includes(channelData.channel - 128)))
 	}
+	
 	const datas = []
-	//Cleaning of messyDatas, merge same channel
-	for (const channelID of new Array(128).fill(1).map((_, i) => i + 1)) {
-		const sameChannel = messyDatas.filter(messyData => messyData.channel == channelID)
+	//We transform messy data in Data object
+	for (const channelID of new Set(globalFocus)) {
+		const highGainDatas = channels.filter(channel => channel.channel === channelID + 128)
+		const lowGainDatas = channels.filter(channel => channel.channel === channelID)
 
-		const highValues = {
-			ping: sameChannel.filter(channel => channel.highGain?.ping !== null).map(channel => channel.highGain?.ping),
-			pong: sameChannel.filter(channel => channel.highGain?.pong !== null).map(channel => channel.highGain?.pong),
-		}
-
-		const lowValues = {
-			ping: sameChannel.filter(channel => channel.lowGain?.ping !== null).map(channel => channel.lowGain?.ping),
-			pong: sameChannel.filter(channel => channel.lowGain?.pong !== null).map(channel => channel.lowGain?.pong),
-		}
-
-		//We "transpose" data to fit interface Value[]
-		const highValue: Value[] = []
-		highValues.ping.forEach((_, index) => highValue.push({ping: highValues.ping[index] as BaseValue, pong: highValues.pong[index] as BaseValue}))
-		
-		const lowValue: Value[] = []
-		highValues.ping.forEach((_, index) => lowValue.push({ping: lowValues.ping[index] as BaseValue, pong: lowValues.pong[index] as BaseValue}))
+		const highTimestamp = extremum(...highGainDatas.map(channel => channel.fineTime))
+		const lowTimestamp = extremum(...lowGainDatas.map(channel => channel.fineTime))
 
 		const data = {
 			channel: channelID,
-			highGain: highValue,
-			lowGain: lowValue,
+			highGain: highGainDatas.map(channel => {
+				return {
+					date: channel.timestamp,
+					//correct timestamp from finetime histogram
+					timestamp: (channel.coarseTime + (channel.fineTime - highTimestamp[0]) / (highTimestamp[0] + highTimestamp[1])) * 25,
+					gain: channel.gain,
+					amplitude: channel.amplitude,
+					charge: channel.charge
+				}
+			}),
+			lowGain: lowGainDatas.map(channel => {
+				return {
+					date: channel.timestamp,
+					//correct timestamp from finetime histogram
+					timestamp: (channel.coarseTime + (channel.fineTime - lowTimestamp[0]) / (lowTimestamp[0] + lowTimestamp[1])) * 25,
+					gain: channel.gain,
+					amplitude: channel.amplitude,
+					charge: channel.charge
+				}
+			})
 		}
-		datas.push(data as Data)
+		datas.push(data)
 	}
 	return datas
 }

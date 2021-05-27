@@ -3,16 +3,16 @@
   var handleWsMessage = (messageString) => {
     const message = JSON.parse(messageString);
     if (message.type === "echo")
-      return { type: "info", payload: message.payload };
+      return {type: "info", payload: message.payload};
     if (message.type === "info") {
       console.log(`[ws]: ${message.payload}`);
       return;
     }
     if (message.type === "abc") {
-      return { type: "abc", payload: message.payload };
+      return {type: "abc", payload: message.payload};
     }
     if (message.type === "gene") {
-      return { type: "gene", payload: message.payload };
+      return {type: "gene", payload: message.payload};
     }
     throw new Error(`Unknown message type: ${messageString}`);
   };
@@ -30,17 +30,17 @@
   var coeffMoindre2 = (x, y) => {
     const a = covariance(x, y) / variance(...x);
     const b = esperance(...y) - a * esperance(...x);
-    return { a, b };
+    return {a, b};
   };
   var incertitudesMoindre2 = (x, y) => {
     const N = x.length;
     const Sx2 = x.reduce((prev, cur) => prev + cur ** 2);
-    const { a, b } = coeffMoindre2(x, y);
+    const {a, b} = coeffMoindre2(x, y);
     const sy = Math.sqrt(1 / (N - 2) * x.reduce((prev, _cur, index) => prev + (y[index] - b - a * x[index]) ** 2));
     const delta = x.length * x.reduce((prev, cur) => prev + cur ** 2);
     const ua = 2 * Math.sqrt(sy * Math.sqrt(N / delta));
     const ub = 2 * Math.sqrt(sy * Math.sqrt(Sx2 / delta));
-    return { ua, ub };
+    return {ua, ub};
   };
   var r2 = (x, y) => {
     const fX = coeffMoindre2(x, y);
@@ -48,9 +48,9 @@
     return fX.a * fY.a;
   };
   var moindre2 = (x, y) => {
-    const { a, b } = coeffMoindre2(x, y);
-    const { ua, ub } = incertitudesMoindre2(x, y);
-    return { a, b, ua, ub, r2: r2(x, y) };
+    const {a, b} = coeffMoindre2(x, y);
+    const {ua, ub} = incertitudesMoindre2(x, y);
+    return {a, b, ua, ub, r2: r2(x, y)};
   };
 
   // src/client/scripts/app.ts
@@ -62,7 +62,7 @@
   };
   ws.onopen = (_) => {
     console.log(`[ws]: Connected to ws://localhost:3000`);
-    const message = { type: "echo", payload: "ready" };
+    const message = {type: "echo", payload: "ready"};
     ws.send(JSON.stringify(message));
   };
   ws.onmessage = (e) => {
@@ -72,7 +72,7 @@
     if (response?.type === "gene")
       geneData = response?.payload;
     if (response !== void 0)
-      ws.send(JSON.stringify({ type: "info", payload: "client recived" }));
+      ws.send(JSON.stringify({type: "info", payload: "client recived"}));
   };
   var $ = (selector) => {
     const elements = document.querySelectorAll(selector);
@@ -95,13 +95,8 @@
   });
   var jsonAutoDownload = (data2, fileName) => {
     const json = JSON.stringify(data2);
-    const uri = encodeURI(json);
-    const link = document.createElement("a");
-    link.setAttribute("href", uri);
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    console.log(json);
+    alert("Data printed in console");
   };
   var loadButton = $("#load-button");
   var folderPath = $("#folder-path");
@@ -123,7 +118,7 @@
         type: "gene",
         payload: {
           path: folderPath.value,
-          config: { width: 10, rise: 5, fall: 5 }
+          config: {width: 10, rise: 5, fall: 5}
         }
       }));
     }
@@ -158,7 +153,7 @@
           title: "Charge (pC)"
         }
       };
-      Graph("gene-graph", data2, layout, { scrollZoom: true, editable: true });
+      Graph("gene-graph", data2, layout, {scrollZoom: true, editable: true});
       const stats = moindre2(sortedGene.map((e) => e.voltage), sortedGene.map((e) => e.mean));
       $("#gene-stats").innerText = JSON.stringify(stats).replaceAll("{", "{\n").replaceAll("}", "\n}").replaceAll(',"', ',\n"');
     });

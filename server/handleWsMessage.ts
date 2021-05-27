@@ -19,7 +19,7 @@ const handleWsMessage = async (messageString: string) => {
         const { path, forcedFocus } = message.payload
         console.log('Start parse raw')
         console.time('parse')
-        const rawData = await parseAll(path, ...forcedFocus)
+        const rawData = await parseAll(path, forcedFocus)
         console.timeEnd('parse')
         Deno.writeTextFile('./temp.json', JSON.stringify(rawData))
         //console.log(`rawData: ${rawData}`)

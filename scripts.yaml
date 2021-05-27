@@ -25,14 +25,26 @@ scripts:
         desc: Test then bundle then build DENO_ENV=prod
         env:
             DENO_ENV: prod
-        pll:
+        log: info
             - vr run test
-            - sass src/client/style/style.scss:public/style/style.css -c --no-source-map --style=compressed
-            - esbuild src/client/scripts/app.ts --outdir=public/scripts --bundle --minify --target=chrome80,firefox80,safari12,edge85
+            - pll:
+                - deno --unstable bundle main.ts main.bundle.js
+                - sass src/client/style/style.scss:public/style/style.css -c --no-source-map --style=compressed
+                - esbuild src/client/scripts/app.ts --outdir=public/scripts --bundle --minify --target=chrome80,firefox80,safari12,edge85
+    compile:
+        desc: Compile server and make a release package
+        env:
+            DENO_ENV: prod
+        log: info
+            - vr run build
+            - pll:
+                - echo "Partialy implemented"
+                - deno compile main.bundle.js
     prod:
         desc: Build then serve
         env:
             DENO_ENV: prod
-        pll:
-            - vr run build
+        log: info
+        - vr run build
+        - pll:
             - deno run -A --unstable main.ts

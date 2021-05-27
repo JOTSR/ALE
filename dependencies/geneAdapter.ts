@@ -15,11 +15,13 @@ interface TimeConfig {
     fall: number
 }
 
+type Path = string
+
 /**
  * Parse a single amplitude of the gene
- * @param path File to parse (.dat)
- * @param config Time config of the gene
- * @returns parsed data
+ * @param {Path} path File to parse (.dat)
+ * @param {TimeConfig} config Time config of the gene
+ * @returns {Promise<Data>} parsed data
  */
 const parseSingle = async (path: string, config: TimeConfig): Promise<Data> => {
     //Read voltage from path
@@ -28,6 +30,7 @@ const parseSingle = async (path: string, config: TimeConfig): Promise<Data> => {
     const text = await Deno.readTextFile(path)
     
     const mean = parseFloat((text?.match(/== Mean Charge =(.*)\d+/g) ?? [''])[0].replace('== Mean Charge =', ''))
+    //deno-lint-ignore no-regex-spaces
     const sigma = parseFloat((text?.match(/== Charge Sigma  =(.*)\d+/g) ?? [''])[0].replace('== Charge Sigma  =', ''))
     const x = text
         .split('X AXIS')[1]
@@ -58,9 +61,9 @@ const parseSingle = async (path: string, config: TimeConfig): Promise<Data> => {
 
 /**
  * Parse all amplitude of a directory
- * @param dirPath directory containing dat files
- * @param config Time config of the gene
- * @returns list of parsed data
+ * @param {Path} dirPath directory containing dat files
+ * @param {TimeConfig} config Time config of the gene
+ * @returns {Promise<Data[]>} list of parsed data
  */
 const parse = async (dirPath: string, config: TimeConfig): Promise<Data[]> => {
     const datas: Data[] = []

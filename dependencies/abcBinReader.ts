@@ -4,20 +4,20 @@ interface RawData {
     gain: number
 	channelEvent: {
 		header: Header
-		data: channelData[]
+		data: ChannelData[]
 	}
 }
 
-interface channelData {
+interface ChannelData {
 	channel: channelID
-	timestamp: number
+	coarseTime: number
+	fineTime: number
 	charge: number
 }
 
 interface Header {
-	codeHeader: number
+	codeHeader: number[]
 	timestamp: number //abc timestamp
-	hitType: 'ping' | 'pong' | 'deadTime'
 	recordedChannels: number
 	hitRegister: channelID[]
 }
@@ -26,17 +26,19 @@ type channelID = number
 
 type Path = string
 
-
 /**
  * Convert a byteArray onto a decimal value
  * @param byteArray 
  * @returns Return decimal value
  */
 const byteArrayToDecimal = (byteArray: Uint8Array) => {
-	return new Array(...byteArray)
-		.reverse()
-		.map((e, i) => e * 16 ** i)
-		.reduce((prev, curr) => prev + curr)
+	let offset = 2 ** (byteArray.length + 1)
+	let result = 0
+	for (const value of byteArray) {
+		result += (offset > 4) ? value << (offset) : value
+		offset /= 2
+	}
+	return result
 }
 
 /**
@@ -46,8 +48,11 @@ const byteArrayToDecimal = (byteArray: Uint8Array) => {
  */
 const hitRegisterHandle = (byteArray: Uint8Array) => {
 	return new Array(...byteArray)
+		.map(e => e.toString(2).padStart(8, '0').split(''))
+		.flat()
+		.map(e => parseInt(e))
 		.reverse()
-		.map((bit, index) => bit * index)
+		.map((e, i) => e * i)
 		.filter(e => e != 0)
 }
 
@@ -60,91 +65,129 @@ const hitRegisterHandle = (byteArray: Uint8Array) => {
 const parseChunk = (
 	byteArray: Uint8Array,
 	format: 'header' | 'channel'
-): (Header | channelData) => {
+): (Header | ChannelData) => {
 	if (format === 'header')
-		return {
-			codeHeader: byteArray[0],
-			timestamp: byteArrayToDecimal(byteArray.slice(1, 9)),
-			recordedChannels: byteArray[9],
-			hitType:
-				byteArray[10] == 0
-					? 'ping'
-					: byteArray[10] == 1
-						? 'pong'
-						: 'deadTime',
-			hitRegister: hitRegisterHandle(byteArray.slice(11, 28)),
-		}
+	return {
+		codeHeader: new Array(...byteArray.slice(0, 4)),
+		timestamp: byteArrayToDecimal(byteArray.slice(4, 9)),
+		recordedChannels: byteArray[9],
+		hitRegister: hitRegisterHandle(new Uint8Array([...byteArray.slice(19, 27), ...byteArray.slice(10, 18)]))
+	}
 	if (format === 'channel')
 		return {
 			channel: byteArray[0],
-            //ajouter correction histogramme finetime
-            timestamp: (byteArrayToDecimal(byteArray.slice(1, 4)) + (byteArrayToDecimal(byteArray.slice(6, 8)) / 1023)) * 25e-9,
-			charge: byteArrayToDecimal(byteArray.slice(4, 6)),
+            coarseTime: byteArrayToDecimal(byteArray.slice(1, 5)),
+			fineTime: byteArrayToDecimal(byteArray.slice(7, 9)),
+			charge: byteArrayToDecimal(byteArray.slice(5, 7)),
 		}
 	throw new Error('Unknown data format')
 }
 
 /**
  * Parse raw data in a bin file for further processing 
- * @param path bin file path
- * @returns parsed bin data
+ * @param {Path} path bin file path
+ * @param {channelID[]} forcedFocus channels to keep after cleaning unwanted event
+ * @param {?EventListenerObject} listener callback called for each chunk of 9 bytes
+ * @returns {Promise<RawData[]>} parsed bin data
  */
-const parseBin = async (path: string, ...forceFocus: channelID[]): Promise<RawData[]> => {
-	const data = []
+ const parseBin = async (path: string, forceFocus: channelID[], listener?: EventListenerObject): Promise<RawData[]> => {
+	
+	const event = new Event('progressParseBin')
+	if (listener !== undefined) globalThis.addEventListener('progressParseBin', listener)
+	
+	const datas = []
 	const file = await Deno.open(path)
-	const chunkSize = 27 + 128 * 9 //header chunk size + 128 * channel chunk size
+	//const chunkSize = 27 //header chunk size or 3 * channel chunk size
 	const { size } = await file.stat()
 
     //Regex à solidifier, bugs possibles
-    //merge forced focus channels and channel in the name of the file
-    const focus = [...forceFocus, parseInt((path.match(/Ch([0-9])+/g) ?? ['-1'])[0].replace('Ch', ''))]
-    //get the amplitude in the name of the file
-    const amplitude = parseInt((path.match(/Ch([0-9])+/g) ?? ['-1'])[0].replace('Ch', ''))
-    const gain = parseInt((path.match(/G([0-9])+/g) ?? ['-1'])[0].replace('G', '')) / 100 //Adapter en coulomb
+    const focus = [...forceFocus, parseInt((path.match(/Ch([0-9])+/g) ?? ['-1'])[0].replace('Ch', ''))] //merge forced focus channels and channel in the name of the file
+    const amplitude = parseInt((path.match(/Amp([0-9])+/g) ?? ['-1'])[0].replace('Amp', '')) / 10 //get the amplitude in the name of the file
+    const gain = parseInt((path.match(/G([0-9])+/g) ?? ['-1'])[0].replace('G', ''))
+
+	let progress = 0
 
     //Reading of the file chunk by chunk
-	for (const _ of new Array(Math.round(size / chunkSize))) {
-		await Deno.seek(file.rid, 0, Deno.SeekMode.Current)
-		const eventHeader = new Uint8Array(27)
-		await file.read(eventHeader)
-		const channels = []
+	while (size > progress) {
+		//We store 3 * 9 byte (1 header or 3 channels)
+		await Deno.seek(file.rid, 0, Deno.SeekMode.Current) //set file pointer position
+		const headerChunk = new Uint8Array(27) //New byte array
+		await file.read(headerChunk) //Store buffer into array
+		if (JSON.stringify(headerChunk) === JSON.stringify(new Uint8Array(27).fill(0))) break //Break if EOF
+		const header = parseChunk(headerChunk, 'header') as unknown as Header
 
-        //Reading of channels
-		for (const _ of new Array(127)) {
-			await Deno.seek(file.rid, 9, Deno.SeekMode.Current)
-			const channel = new Uint8Array(9)
-			await file.read(channel)
-			channels.push(channel)
+		progress += 27
+		if (listener !== undefined) {
+			globalThis.dispatchEvent(event)
+			globalThis.dispatchEvent(event)
+			globalThis.dispatchEvent(event)
 		}
 
-		data.push({
-            focus: focus,
-            amplitude: amplitude,
-            gain: gain,
-			channelEvent: {
-				header: parseChunk(eventHeader, 'header'),
-				data: channels.map((channel) =>
-					parseChunk(channel, 'channel')
-				),
+		const channels = []
+
+		for (const _ of new Array(header.recordedChannels)) {
+			await Deno.seek(file.rid, 0, Deno.SeekMode.Current) //set file pointer position
+			const channelChunk = new Uint8Array(9) //New byte array
+			await file.read(channelChunk) //Store buffer into array
+			if (JSON.stringify(channelChunk) === JSON.stringify(new Uint8Array(9).fill(0))) break //Break if EOF
+			channels.push(parseChunk(channelChunk, 'channel'))
+			progress += 9
+			if (listener !== undefined) globalThis.dispatchEvent(event)
+		}
+
+		//Test CAFECAFE if error in header recorded channel number
+		const unknownChunk = new Uint8Array(9)
+		const hiddenChannels = []
+		let isNotHeader = false
+		do {
+			await Deno.seek(file.rid, 0, Deno.SeekMode.Current)
+			await file.read(unknownChunk)
+			isNotHeader = JSON.stringify(unknownChunk.slice(0, 4)) !== JSON.stringify(new Uint8Array([202, 254, 202, 254]))
+			if (isNotHeader) {
+				hiddenChannels.push(parseChunk(unknownChunk, 'channel') as unknown as ChannelData)
+				progress += 9
+				if (listener !== undefined) globalThis.dispatchEvent(event)
+			} else {
+				await Deno.seek(file.rid, -9, Deno.SeekMode.Current) //We reset cursor position
+				break
 			}
-		})
+		} while (isNotHeader && (size > progress))
+
+			
+			datas.push({
+				focus: focus,
+				amplitude: amplitude,
+				gain: gain,
+				channelEvent: {
+					header: header,
+					data: [...channels, ...hiddenChannels.filter(channel => (channel.coarseTime !== 0) && (channel.channel !== 0))]
+				}
+			})
+
 	}
 	Deno.close(file.rid)
-	return data as RawData[]
+	return datas as RawData[]
 }
 
 /**
  * Parse a measurement series, eg: TOBI_CAT0_Ch0_2021-05-05_15-56-32_ABDEL
- * @param directory root directory to browse
- * @param forceFocus channels you want to keep after clean unwanted event
- * @returns Raw data for furhter processing
+ * @param {Path} directory root directory to browse
+ * @param {channelID[]} forceFocus channels you want to keep after clean unwanted event
+ * @param {?EventListenerObject} listener callback called for each bin parsed
+ * @returns {Promise<RawData[]>} Raw data for furhter processing
  */
-const parseSingle = async (directory: Path, ...forceFocus: channelID[]) => {
-	const raws = []
+const parseSingle = async (directory: Path, forceFocus: channelID[], listener?: EventListenerObject) => {
+	const event = new Event('progressParseSingle')
+	if (listener !== undefined) globalThis.addEventListener('progressParseSingle', listener)
+	
+	const raws: RawData[] = []
     //Iterate on all bin in the directory and parse it
 	for await (const dirEntry of Deno.readDir(directory)) {
+		// console.log(dirEntry.name)
 		if (dirEntry.isFile && dirEntry.name.endsWith('.bin')) {
-			raws.push(await parseBin(`${directory}/${dirEntry.name}`, ...forceFocus))
+			if (listener !== undefined) globalThis.dispatchEvent(event)
+			//console.log('Bin find')
+			raws.push(...await parseBin(`${directory}/${dirEntry.name}`, forceFocus))
 		}
 	}
 	return raws.flat()
@@ -152,24 +195,25 @@ const parseSingle = async (directory: Path, ...forceFocus: channelID[]) => {
 
 /**
  * Parse a list of measurement series
- * @param directory root directory to browse
- * @param forceFocus channels you want to keep after clean unwanted event
- * @returns Raw data for furhter processing 
+ * @param {Path} directory root directory to browse
+ * @param {channelID[]} forceFocus channels you want to keep after clean unwanted event
+ * @param {?EventListenerObject} listener callback called for each subdir parsed
+ * @returns {Promise<RawData[]>} Raw data for furhter processing 
  */
-const parseAll = async (directory: Path, ...forceFocus: channelID[]) => {
+const parseAll = async (directory: Path, forceFocus: channelID[], listener?: EventListenerObject) => {
+	const event = new Event('progressParseAll')
+	if (listener !== undefined) globalThis.addEventListener('progressParseAll', listener)
+	
 	const raws: RawData[] = []
     //Iterate on all dir in the root directory and parse all sub bin
 	for await (const subDir of Deno.readDir(directory)) {
 		if (subDir.isDirectory && subDir.name.startsWith('TOBI')) {
-            raws.push(...await parseSingle(`${directory}/${subDir.name}`, ...forceFocus))
+			if (listener !== undefined) globalThis.dispatchEvent(event)
+            raws.push(...await parseSingle(`${directory}/${subDir.name}`, forceFocus))
 		}
 	}
 	return raws.flat()
 }
-
-const path = 'C:/Users/xdrzj/OneDrive/Documents/Scolaire/L3 PC/Stage/CENBG/rawData/Charge_Gene/Time_Resolution/TOBI_CAT0_Ch0_2021-05-05_15-56-32_ABDEL/2021-05-18_15-20-06_ABDEL_CAT0_Ch0_G32_Amp100mV-GENE.bin'
-const a = await parseBin(path, 80)
-console.log(a)
 
 export { parseBin, parseSingle, parseAll }
 export type { RawData, channelID }

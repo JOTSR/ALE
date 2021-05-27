@@ -1,28 +1,28 @@
 /**
  * Calculate the esperance of a 1D set of values
- * @param values Values to process on
- * @returns Arithmetic mean of data set
+ * @param {number[]} values Values to process on
+ * @returns {number} Arithmetic mean of data set
  */
-const esperance = (...values: number[]) => {
+const esperance = (...values: number[]): number => {
     return values.reduce((prev, curr) => prev + curr) / values.length
 }
 
 /**
  * Calculate the variance od 1D set of values
- * @param values Values to process on
- * @returns Variance of data set
+ * @param {number[]} values Values to process on
+ * @returns {number} Variance of data set
  */
-const variance = (...values: number[]) => {
+const variance = (...values: number[]): number => {
     return esperance(...values.map(value => value **2)) - esperance(...values) ** 2
 }
 
 /**
  * Calculate the covariance between 2 * 1D set of values
- * @param x First values array
- * @param y Second values array
- * @returns Covariance between x and y
+ * @param {number[]} x First values array
+ * @param {number[]} y Second values array
+ * @returns {number} Covariance between x and y
  */
-const covariance = (x: number[], y: number[]) => {
+const covariance = (x: number[], y: number[]): number => {
     return esperance(...x.map((xi, index) => xi * y[index])) - esperance(...x) * esperance(...y)
 }
 
@@ -55,9 +55,9 @@ const r2 = (x: number[], y: number[]) => {
 
 /**
  * Uses moindre² methode to linearize a 2D data set
- * @param x First list of values
- * @param y Second list of values
- * @returns a: slop, b: intercept, ua: incertitude on slop, ub: incertitude on intercept, r2: correlation coefficient
+ * @param {number} x First list of values
+ * @param {number} y Second list of values
+ * @returns {Object} "a": slop, "b": intercept, "ua": incertitude on slop, "ub": incertitude on intercept, "r2": correlation coefficient
  */
 const moindre2 = (x: number[], y: number[]) => {
     const {a, b} = coeffMoindre2(x, y)
@@ -67,10 +67,10 @@ const moindre2 = (x: number[], y: number[]) => {
 
 /**
  * Determine the min and the max of 1D array
- * @param values Values to process on
- * @returns [minimum value, maximum value]
+ * @param {number[]} values Values to process on
+ * @returns {number[]} [minimum value, maximum value]
  */
-const extremum = (...values: number[]) => {
+const extremum = (...values: number[]): number[] => {
     let min = values[0]
     let max = values[0]
     for(const value of values) {
@@ -82,10 +82,10 @@ const extremum = (...values: number[]) => {
 
 /**
  * Determine the mediane of 1D array
- * @param values Values to process on
- * @returns At least the middle index of sorted values
+ * @param {number[]} values Values to process on
+ * @returns {number} At least the middle index of sorted values
  */
-const mediane = (...values: number[]) => {
+const mediane = (...values: number[]): number => {
     const sorted = values.sort((a, b) => a - b)
     return sorted[Math.round(values.length / 2) - 1]
 }

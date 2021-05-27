@@ -1,0 +1,32 @@
+Usage: ale [OPTION] [ARGS]...
+A tool for calibrate the JUNO project's ABC card. Parse binaries and analyze datas.
+Default run a GUI on a http web server (localhost:8080)
+
+Mandatory arguments to long options are mandatory for short options too.
+  [OPTION]
+  -p, --parse [PATH] (ARGS)     parse RawData[] onto Data[] (clean unwanted event, calcul finetime,
+                                group same channel event, group HG & LG)
+  -b, --parse-bin [PATH] (ARGS) parse binary files onto RawData[] for further analysis, 
+      --port [PORT]             run a web GUI on specified port, default run port 8080
+
+      --help     display this help and exit
+
+  [ARGS]
+  -o, --output [PATH]           output file or directory according to choosen option
+                                (default: "./rawData" for "--parse-bin" and "./data.json" for "--parse")
+      --prefix [STRING]         prefix of outfiles (only for "--parse-bin")
+      --forced                  forced channel to focus on and keep after clean unwanted events (only for "--parse-bin")
+
+  e.g: 
+
+  ale                                                                  #start a GUI server on "localhost:8080"
+  ale -p path_to/raw_data.json -o my_data.json                         #parse "raw_data.json" to "my_data.json"
+  ale -b bins_dir -o parsed_dir --prefix 03-2021_ --forced 80,51,11    #parse binaries of "bin_dir" in "parsed_dir"
+                                                                       with prefix for each files "03-2021_" and forced
+                                                                       channels [80, 51, 11]
+
+Exit status:
+ 0  if OK,
+ 1  if error
+
+More information at: <https://github.com/JOTSR/ALE>
