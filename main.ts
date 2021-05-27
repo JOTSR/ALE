@@ -1,4 +1,4 @@
-//import { server } from './server/server.ts'
+import { server } from './server/server.ts'
 import * as CLI from './dependencies/cli.ts'
 
 /**
@@ -29,7 +29,7 @@ const main = async (option: string, ...args: string[]) => {
     //Start GUI
     if (option === '--port' || option === undefined) {
         const port = parseInt(args[0])
-        //server(Number.isNaN(port) ? 8080 : port)
+        server(Number.isNaN(port) ? 8080 : port)
         return 0
     }
 

@@ -65,7 +65,7 @@ In project folder
     ```sh
     docker-compose up
     ```
-Default serve GUI on http://localhost:8080
+Default serve GUI on http://localhost:8080, for CLI view [man.cli.txt](./man.cli.txt)
 
 _Note: if running with docker put raw data folder in app root directory_
 

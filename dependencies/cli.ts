@@ -29,7 +29,7 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     //Progressbar for UI
     const progress = new ProgressBar({total: size, clear: true})
     let comp = 0
-    const cb = (_e: Event) => progress.render(comp++)
+    const cb = (_e: Event) => progress.render(comp += 9)
     
     //Parse single bin file
     const rawData = await BIN.parseBin(absSourcePath, forcedChannels, cb as unknown as EventListenerObject)
@@ -42,28 +42,28 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     //Progressbar for UI
     let count = 0
     for await (const subDir of Deno.readDir(absSourcePath)) {
-      if (subDir.isDirectory) for await (const entry of Deno.readDir(subDir.name)) if (entry.isFile && entry.name.endsWith('.bin')) count++
-      else if (subDir.isFile && subDir.name.endsWith('.bin')) count++
+      if (subDir.isDirectory) for await (const entry of Deno.readDir(`${absSourcePath}/${subDir.name}`)) if (entry.isFile && entry.name.endsWith('.bin')) count++
+      if (subDir.isFile && subDir.name.endsWith('.bin')) count++
     }
-
     const progress = new ProgressBar({total: count, clear: true})
     let comp = 0
   
     for await (const subDir of Deno.readDir(absSourcePath)) {
         if (subDir.isDirectory) {
             //Parse single measure serie
-            const rawDatas = await BIN.parseSingle(absSourcePath, forcedChannels)
+            const rawDatas = await BIN.parseSingle(`${absSourcePath}/${subDir.name}`, forcedChannels)
             if (rawDatas.length !== 0) {
               const jsonFile = JSON.stringify(rawDatas)
-              await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
-              progress.render(comp++)
+              await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+              if (comp < count) progress.render(++comp)
             }
-        } else if (subDir.isFile) {
+        } 
+        if (subDir.isFile && subDir.name.endsWith('.bin')) {
           //Parse single bin file
-          const rawData = await BIN.parseBin(absSourcePath, forcedChannels)
+          const rawData = await BIN.parseBin(`${absSourcePath}/${subDir.name}`, forcedChannels)
           const jsonFile = JSON.stringify(rawData)
-          await Deno.writeTextFile(`${outDir}/${prefix}_single_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
-          progress.render(comp++)
+          await Deno.writeTextFile(`${outDir}/${prefix}_single_bin_ch${rawData[0].focus.join('_')}_Amp${rawData[0].amplitude}_G${rawData[0].gain}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+          if (comp < count) progress.render(++comp)
         }
     }
     return
