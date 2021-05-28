@@ -36,6 +36,7 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     const jsonFile = JSON.stringify(rawData)
     await Deno.writeTextFile(`${outDir}/${prefix}_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
 
+    console.log('\nBinaries parse OK')
     return
   }
   if (isDirectory) {
@@ -51,11 +52,12 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     for await (const subDir of Deno.readDir(absSourcePath)) {
         if (subDir.isDirectory) {
             //Parse single measure serie
-            const rawDatas = await BIN.parseSingle(`${absSourcePath}/${subDir.name}`, forcedChannels)
+            const incr = (_e: Event) => comp++ //Callback for increment comp
+            const rawDatas = await BIN.parseSingle(`${absSourcePath}/${subDir.name}`, forcedChannels, incr as unknown as EventListenerObject)
             if (rawDatas.length !== 0) {
               const jsonFile = JSON.stringify(rawDatas)
               await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
-              if (comp < count) progress.render(++comp)
+              if (comp < count) progress.render(comp)
             }
         } 
         if (subDir.isFile && subDir.name.endsWith('.bin')) {
@@ -66,6 +68,7 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
           if (comp < count) progress.render(++comp)
         }
     }
+    console.log('\nBinaries parse OK')
     return
   } 
 }
@@ -83,14 +86,18 @@ const parse = async (sourcePath: Path, outFile: Path) => {
   //Test out path before parsing, throw error if cannot create out file
   await Deno.create(outFile)
   
+  const { isFile, isDirectory } = await Deno.stat(absSourcePath)
+
+  let size = 0
+  if (isFile) size = 1
+  if (isDirectory) for await (const dirEntry of Deno.readDir(absSourcePath)) if (dirEntry.isFile && dirEntry.name.endsWith('.json')) size++
+
   //Progressbar for UI
-  const progress = new ProgressBar({total: 128, clear: true})
+  const progress = new ProgressBar({total: size, clear: true})
   let comp = 0
   
   const datas: ABC.Data[] = []
   
-  const { isFile, isDirectory } = await Deno.stat(absSourcePath)
-
   //Parse raw datas
   if (isFile) {
     const file = await Deno.readTextFile(sourcePath)
@@ -108,7 +115,9 @@ const parse = async (sourcePath: Path, outFile: Path) => {
   } 
 
   await Deno.writeTextFile(outFile, JSON.stringify(datas))
-  
+
+  console.log('\nParse raw OK')
+  return 0  
 }
 
 export { parse, parseBin }

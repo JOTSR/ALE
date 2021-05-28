@@ -7,6 +7,6 @@ services:
        - "3000:3000"
     volumes: 
         - .:/app
-        - ../data:/data
+        #share a data volume with /data
     command: vr run watch
     restart: on-failure

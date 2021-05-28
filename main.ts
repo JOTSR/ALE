@@ -23,6 +23,7 @@ const main = async (option: string, ...args: string[]) => {
         const source = args[0]
         const output = (args[1] === '-o' || args[1] === '--output') ? args[2] : './data.json'
         await CLI.parse(source, output)
+        return 0
     }
     
     //Default
