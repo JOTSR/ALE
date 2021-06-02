@@ -1,25 +1,26 @@
 interface RawData {
-    focus: channelID[]
-    amplitude: number
-    gain: number
+    focus: channelID[] //Channel to keep after clean unwanted event
+    amplitude: number //Input amplitude
+    gain: number //ASICs gain
 	channelEvent: {
-		header: Header
+		header: Header //Event header
 		data: ChannelData[]
 	}
 }
 
 interface ChannelData {
-	channel: channelID
-	coarseTime: number
-	fineTime: number
-	charge: number
+	channel: channelID //Channel hited
+	coarseTime: number //Base time of 25MHz
+	fineTime: number //Fine time on 25MHz / ~1024
+	charge: number //Charge in ADCu
+	type: 'ping' | 'pong' //Catch mode
 }
 
 interface Header {
-	codeHeader: number[]
+	codeHeader: number[] //CAFECAFE (identification of header)
 	timestamp: number //abc timestamp
-	recordedChannels: number
-	hitRegister: channelID[]
+	recordedChannels: number //Number of channels hited during event
+	hitRegister: channelID[] //Channels hited during event
 }
 
 type channelID = number
@@ -78,7 +79,8 @@ const parseChunk = (
 			channel: byteArray[0],
             coarseTime: byteArrayToDecimal(byteArray.slice(1, 5)),
 			fineTime: byteArrayToDecimal(byteArray.slice(7, 9)),
-			charge: byteArrayToDecimal(byteArray.slice(5, 7)),
+			charge: byteArrayToDecimal(byteArray.slice(5, 7)) & 0x7fff,
+			type: (byteArray[5] & 0x80) ? 'pong' : 'ping'
 		}
 	throw new Error('Unknown data format')
 }

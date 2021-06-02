@@ -2,7 +2,7 @@ import { RawData } from './abcBinReader.ts'
 import { extremum } from './statsFunc.ts'
 
 interface Data {
-	channel: number
+	channel: channelID
 	highGain: BaseValue[]
 	lowGain: BaseValue[]
 }
@@ -12,7 +12,10 @@ interface BaseValue {
 	gain: number //ASIC gain
 	amplitude: number //Inpult voltage in mV
 	charge: number //Measure value in ADCu
+	type: 'ping' | 'pong' //Catch mode
 }
+
+type channelID = number
 
 /**
  * Parse rawData list extracted with abcBinreader to simplest format for processing and analysing
@@ -49,7 +52,8 @@ const parse = (...rawDatas: RawData[]): Data[] => {
 					timestamp: (channel.coarseTime + (channel.fineTime - highTimestamp[0]) / (highTimestamp[0] + highTimestamp[1])) * 25,
 					gain: channel.gain,
 					amplitude: channel.amplitude,
-					charge: channel.charge
+					charge: channel.charge,
+					type: channel.type
 				}
 			}),
 			lowGain: lowGainDatas.map(channel => {
@@ -59,7 +63,8 @@ const parse = (...rawDatas: RawData[]): Data[] => {
 					timestamp: (channel.coarseTime + (channel.fineTime - lowTimestamp[0]) / (lowTimestamp[0] + lowTimestamp[1])) * 25,
 					gain: channel.gain,
 					amplitude: channel.amplitude,
-					charge: channel.charge
+					charge: channel.charge,
+					type: channel.type
 				}
 			})
 		}
