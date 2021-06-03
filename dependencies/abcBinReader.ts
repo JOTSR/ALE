@@ -79,7 +79,7 @@ const parseChunk = (
 			channel: byteArray[0],
             coarseTime: byteArrayToDecimal(byteArray.slice(1, 5)),
 			fineTime: byteArrayToDecimal(byteArray.slice(7, 9)),
-			charge: byteArrayToDecimal(byteArray.slice(5, 7)) & 0x7fff,
+			charge: byteArrayToDecimal(byteArray.slice(5, 7)) & 0x3ff,
 			type: (byteArray[5] & 0x80) ? 'pong' : 'ping'
 		}
 	throw new Error('Unknown data format')
@@ -109,10 +109,18 @@ const parseChunk = (
 
 	let progress = 0
 
+	await Deno.seek(file.rid, 0, Deno.SeekMode.Current) //set file pointer position to start and progress on read
+
+	//Find first header to be resilient over bin corruption
+	const unknownChunk = new Uint8Array(9) //New byte array
+	do {
+		await file.read(unknownChunk) //Store buffer into array
+	} while (JSON.stringify(unknownChunk.slice(0, 4)) !== JSON.stringify(new Uint8Array([202, 254, 202, 254])))
+	await Deno.seek(file.rid, -9, Deno.SeekMode.Current) //We reset cursor position
+
     //Reading of the file chunk by chunk
 	while (size > progress) {
 		//We store 3 * 9 byte (1 header or 3 channels)
-		await Deno.seek(file.rid, 0, Deno.SeekMode.Current) //set file pointer position
 		const headerChunk = new Uint8Array(27) //New byte array
 		await file.read(headerChunk) //Store buffer into array
 		if (JSON.stringify(headerChunk) === JSON.stringify(new Uint8Array(27).fill(0))) break //Break if EOF
@@ -128,7 +136,6 @@ const parseChunk = (
 		const channels = []
 
 		for (const _ of new Array(header.recordedChannels)) {
-			await Deno.seek(file.rid, 0, Deno.SeekMode.Current) //set file pointer position
 			const channelChunk = new Uint8Array(9) //New byte array
 			await file.read(channelChunk) //Store buffer into array
 			if (JSON.stringify(channelChunk) === JSON.stringify(new Uint8Array(9).fill(0))) break //Break if EOF
@@ -142,7 +149,6 @@ const parseChunk = (
 		const hiddenChannels = []
 		let isNotHeader = false
 		do {
-			await Deno.seek(file.rid, 0, Deno.SeekMode.Current)
 			await file.read(unknownChunk)
 			isNotHeader = JSON.stringify(unknownChunk.slice(0, 4)) !== JSON.stringify(new Uint8Array([202, 254, 202, 254]))
 			if (isNotHeader) {
@@ -165,7 +171,6 @@ const parseChunk = (
 					data: [...channels, ...hiddenChannels.filter(channel => (channel.coarseTime !== 0) && (channel.channel !== 0))]
 				}
 			})
-
 	}
 	Deno.close(file.rid)
 	return datas as RawData[]
