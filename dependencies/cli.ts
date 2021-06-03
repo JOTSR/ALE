@@ -4,6 +4,46 @@ import * as ABC from './abcAdapter.ts'
 import * as BIN from './abcBinReader.ts'
 
 /**
+ * Write json file and prevent too long string overload
+ * @param {ABC.Data[] | BIN.RawData[]} datas Data to write
+ * @param {string} outDir Output directory
+ * @param {string} prefix Out file name prefix
+ */
+const stringifyDatas = async (datas: ABC.Data[] | BIN.RawData[], outDir: string, prefix: string) => {
+  const fileName = `${outDir}/${prefix}_bin_ch${data[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`
+  try {
+    //Write from json
+    const jsonFile = JSON.stringify(datas)
+    await Deno.writeTextFile(fileName, jsonFile)
+  } catch {
+    //Split file in parts
+    let i = 0 //file id
+    let out = []
+    const uid = Math.random() * 99 //uid to catch for merge
+    for (const data of datas) {
+      if (out.length < 5000) out.push(data)
+      else {
+        await Deno.writeTextFile(`${outDir}/temp_${i++}_${uid}.json`, JSON.stringify(out)) //write temp files
+        out = []
+      }
+    }
+    //Glue them
+    Deno.writeTextFile(fileName, '[', {append: false})
+    for await (const file of Deno.readDir(dir)) {
+      if (file.name.startsWith('temp_') && file.name.endsWith(`_${uid}.json`)) {
+          const text = await Deno.readTextFile(`${dir}/${file.name}`) //read temp file
+          Deno.writeTextFile(fileName, text.slice(1, text.length - 1), {append: true}) //write flat json array
+          Deno.writeTextFile(fileName, ',', {append: true})
+          Deno.remove(`${dir}/${file.name}`) // remove temp file
+      }
+  }
+  
+  Deno.writeTextFile(fileName, '[],]', {append: true})
+  }
+  
+}
+
+/**
  * CLI adapter for parsing and analyze datas
  */
 
@@ -33,8 +73,9 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     
     //Parse single bin file
     const rawData = await BIN.parseBin(absSourcePath, forcedChannels, cb as unknown as EventListenerObject)
-    const jsonFile = JSON.stringify(rawData)
-    await Deno.writeTextFile(`${outDir}/${prefix}_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
+    //const jsonFile = JSON.stringify(rawData)
+    //await Deno.writeTextFile(`${outDir}/${prefix}_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
+    await stringifyDatas(rawData, outDir)
 
     console.log('\nBinaries parse OK')
     return
@@ -55,16 +96,18 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
             const incr = (_e: Event) => comp++ //Callback for increment comp
             const rawDatas = await BIN.parseSingle(`${absSourcePath}/${subDir.name}`, forcedChannels, incr as unknown as EventListenerObject)
             if (rawDatas.length !== 0) {
-              const jsonFile = JSON.stringify(rawDatas)
-              await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+              //const jsonFile = JSON.stringify(rawDatas)
+              //await Deno.writeTextFile(`${outDir}/${prefix}_single_ch${rawDatas[0].focus.join('_')}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+              await stringifyDatas(rawDatas, outDir, prefix)
               if (comp < count) progress.render(comp)
             }
         } 
         if (subDir.isFile && subDir.name.endsWith('.bin')) {
           //Parse single bin file
           const rawData = await BIN.parseBin(`${absSourcePath}/${subDir.name}`, forcedChannels)
-          const jsonFile = JSON.stringify(rawData)
-          await Deno.writeTextFile(`${outDir}/${prefix}_single_bin_ch${rawData[0].focus.join('_')}_Amp${rawData[0].amplitude}_G${rawData[0].gain}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+          //const jsonFile = JSON.stringify(rawData)
+          //await Deno.writeTextFile(`${outDir}/${prefix}_single_bin_ch${rawData[0].focus.join('_')}_Amp${rawData[0].amplitude}_G${rawData[0].gain}_#${Math.round(Math.random() * 100)}.json`, jsonFile)
+          await stringifyDatas(rawData, outDir, prefix)
           if (comp < count) progress.render(++comp)
         }
     }
