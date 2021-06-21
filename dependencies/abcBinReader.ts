@@ -173,6 +173,7 @@ const parseChunk = (
 			})
 	}
 	Deno.close(file.rid)
+	if (listener !== undefined) globalThis.removeEventListener('progressParseBin', listener)
 	return datas as RawData[]
 }
 
@@ -190,13 +191,16 @@ const parseSingle = async (directory: Path, forceFocus: channelID[], listener?: 
 	const raws: RawData[] = []
     //Iterate on all bin in the directory and parse it
 	for await (const dirEntry of Deno.readDir(directory)) {
-		// console.log(dirEntry.name)
 		if (dirEntry.isFile && dirEntry.name.endsWith('.bin')) {
-			if (listener !== undefined) globalThis.dispatchEvent(event)
-			//console.log('Bin find')
-			raws.push(...await parseBin(`${directory}/${dirEntry.name}`, forceFocus))
+			// Pass empty files
+			const { size } = await Deno.stat(`${directory}/${dirEntry.name}`)
+			if (size > 0) {
+				if (listener !== undefined) globalThis.dispatchEvent(event)
+				raws.push(...await parseBin(`${directory}/${dirEntry.name}`, forceFocus))
+			}
 		}
 	}
+	if (listener !== undefined) globalThis.removeEventListener('progressParseSingle', listener)
 	return raws.flat()
 }
 
@@ -219,6 +223,7 @@ const parseAll = async (directory: Path, forceFocus: channelID[], listener?: Eve
             raws.push(...await parseSingle(`${directory}/${subDir.name}`, forceFocus))
 		}
 	}
+	if (listener !== undefined) globalThis.removeEventListener('progressParseAll', listener)
 	return raws.flat()
 }
 

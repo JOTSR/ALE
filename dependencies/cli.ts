@@ -10,7 +10,8 @@ import * as BIN from './abcBinReader.ts'
  * @param {string} prefix Out file name prefix
  */
 const stringifyDatas = async (datas: ABC.Data[] | BIN.RawData[], outDir: string, prefix: string) => {
-  const fileName = `${outDir}/${prefix}_bin_ch${data[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`
+  const focus: number[] = ('focus' in datas[0]) ? datas[0].focus : [0]
+  const fileName = `${outDir}/${prefix}_bin_ch${focus.join('_')}_#${Math.round(Math.random() * 100)}.json`
   try {
     //Write from json
     const jsonFile = JSON.stringify(datas)
@@ -29,12 +30,12 @@ const stringifyDatas = async (datas: ABC.Data[] | BIN.RawData[], outDir: string,
     }
     //Glue them
     Deno.writeTextFile(fileName, '[', {append: false})
-    for await (const file of Deno.readDir(dir)) {
+    for await (const file of Deno.readDir(outDir)) {
       if (file.name.startsWith('temp_') && file.name.endsWith(`_${uid}.json`)) {
-          const text = await Deno.readTextFile(`${dir}/${file.name}`) //read temp file
+          const text = await Deno.readTextFile(`${outDir}/${file.name}`) //read temp file
           Deno.writeTextFile(fileName, text.slice(1, text.length - 1), {append: true}) //write flat json array
           Deno.writeTextFile(fileName, ',', {append: true})
-          Deno.remove(`${dir}/${file.name}`) // remove temp file
+          Deno.remove(`${outDir}/${file.name}`) // remove temp file
       }
   }
   
@@ -75,7 +76,7 @@ const parseBin = async (sourcePath: Path, outDir: Path, prefix = 'raw_data', for
     const rawData = await BIN.parseBin(absSourcePath, forcedChannels, cb as unknown as EventListenerObject)
     //const jsonFile = JSON.stringify(rawData)
     //await Deno.writeTextFile(`${outDir}/${prefix}_bin_ch${rawData[0].focus.join('_')}${Math.round(Math.random() * 100)}.json`, jsonFile)
-    await stringifyDatas(rawData, outDir)
+    await stringifyDatas(rawData, outDir, prefix)
 
     console.log('\nBinaries parse OK')
     return
