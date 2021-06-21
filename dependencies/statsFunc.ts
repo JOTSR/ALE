@@ -4,7 +4,7 @@
  * @returns {number} Arithmetic mean of data set
  */
 const esperance = (...values: number[]): number => {
-    return values.reduce((prev, curr) => prev + curr) / values.length
+    return values.reduce((prev, curr) => prev + curr, 0) / values.length
 }
 
 /**
@@ -35,13 +35,13 @@ const coeffMoindre2 = (x: number[], y: number[]) => {
 const incertitudesMoindre2 = (x: number[], y: number[]) => {
     const N = x.length
     //Somme carré
-    const Sx2 = x.reduce((prev, cur) => prev + cur ** 2)
+    const Sx2 = x.reduce((prev, cur) => prev + cur ** 2, 0)
     const {a, b} = coeffMoindre2(x, y)
     //Sigma sur y
     const sy = Math.sqrt((1 / (N - 2)) * x.reduce((prev, _cur, index) => 
         prev + (y[index] - b - a * x[index]) ** 2
-    ))
-    const delta = x.length * (x.reduce((prev, cur) => prev + cur ** 2))
+    , 0))
+    const delta = x.length * (x.reduce((prev, cur) => prev + cur ** 2, 0))
     const ua = 2 * Math.sqrt(sy * Math.sqrt(N / delta))
     const ub = 2 * Math.sqrt(sy * Math.sqrt(Sx2 / delta))
     return {ua, ub}
@@ -90,4 +90,4 @@ const mediane = (...values: number[]): number => {
     return sorted[Math.round(values.length / 2) - 1]
 }
 
-export {esperance, variance, covariance, moindre2, r2, extremum, mediane}
+export {esperance, variance, covariance, moindre2, extremum, mediane}
