@@ -57,9 +57,16 @@ const r2 = (x: number[], y: number[]) => {
  * Uses moindre² methode to linearize a 2D data set
  * @param {number} x First list of values
  * @param {number} y Second list of values
+ * @param {boolean} intercept Allow intercept or force to 0, default true
  * @returns {Object} "a": slop, "b": intercept, "ua": incertitude on slop, "ub": incertitude on intercept, "r2": correlation coefficient
  */
-const moindre2 = (x: number[], y: number[]) => {
+const moindre2 = (x: number[], y: number[], intercept = true) => {
+    if (!intercept) {
+        const [a, b] = [esperance(...y) / esperance(...x), 0]
+        const [ua, ub] = [2 * Math.sqrt(variance(...x.map((e, i) => y[i] - a * e))), 0]
+        return {a, b, ua, ub, r2: r2(x, y)}
+    }
+    
     const {a, b} = coeffMoindre2(x, y)
     const {ua, ub} = incertitudesMoindre2(x, y)
     return {a, b, ua, ub, r2: r2(x, y)}
